@@ -13,7 +13,7 @@
       --border: rgba(255,255,255,0.08); --text: #f0f2f8; --muted: #6b7080; --subtle: #3a3f52;
       --red: #e05252; --red-bg: rgba(224,82,82,0.12);
       --green: #3ecf8e; --green-bg: rgba(62,207,142,0.12);
-      --amber: #f5a623;
+      --amber: #f5a623; --blue: #5b9cf6; --purple: #a78bfa; --coral: #fb7185;
     }
     body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; padding: 2rem; }
     .header { margin-bottom: 2rem; }
@@ -48,14 +48,20 @@
     .edit-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 5px 14px; cursor: pointer; }
     .edit-btn:hover { background: var(--subtle); }
     .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; }
-    .chart-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 12px; }
+    .chart-header { margin-bottom: 1.25rem; }
     .chart-title { font-size: 15px; font-weight: 600; color: var(--text); }
-    .chart-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .legend { display: flex; gap: 16px; flex-wrap: wrap; }
+    .chart-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; margin-bottom: 1rem; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab { font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+    .tab:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+    .tab.active-minor { background: rgba(91,156,246,0.15); border-color: rgba(91,156,246,0.4); color: #5b9cf6; }
+    .tab.active-major { background: rgba(167,139,250,0.15); border-color: rgba(167,139,250,0.4); color: #a78bfa; }
+    .tab.active-dwg { background: rgba(251,113,133,0.15); border-color: rgba(251,113,133,0.4); color: #fb7185; }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
     .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
     .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .legend-dash { width: 16px; height: 0; border-top: 2px dashed rgba(255,255,255,0.3); flex-shrink: 0; }
-    .chart-wrap { position: relative; height: 300px; }
+    .chart-wrap { position: relative; height: 320px; }
     .footer { margin-top: 1rem; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; text-align: center; }
   </style>
 </head>
@@ -72,14 +78,17 @@
 
 <div class="chart-card">
   <div class="chart-header">
-    <div>
-      <div class="chart-title">Days to close — individual ECRs</div>
-      <div class="chart-subtitle">Each point is one ECR — green = below target, red = above target</div>
+    <div class="chart-title">Days to close — individual ECRs</div>
+    <div class="chart-subtitle">Green = below target &nbsp;·&nbsp; Red = above target &nbsp;·&nbsp; Dashed line = target</div>
+    <div class="tabs">
+      <button class="tab active-minor" onclick="showType('minor')">Minor (target: 10 days)</button>
+      <button class="tab" onclick="showType('major')">Major (target: 45 days)</button>
+      <button class="tab" onclick="showType('dwg')">Additional DWG Info (target: 10 days)</button>
     </div>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:#3ecf8e"></div>Below target</div>
       <div class="legend-item"><div class="legend-dot" style="background:#e05252"></div>Above target</div>
-      <div class="legend-item"><div class="legend-dash"></div>Target (10 days)</div>
+      <div class="legend-item"><div class="legend-dash"></div>Target line</div>
     </div>
   </div>
   <div class="chart-wrap">
@@ -90,23 +99,58 @@
 <div class="footer">Update actual values whenever your ClickUp averages change</div>
 
 <script>
-  const data = [
+  const summaryData = [
     { id: 'minor', title: 'Minor ECR', target: 10, actual: 33.06 },
     { id: 'major', title: 'Major ECR', target: 45, actual: 74 },
     { id: 'dwg',   title: 'Additional DWG Info ECR', target: 10, actual: 28.13 },
   ];
 
-  const ecrData = [
-    { ecr: 'ECR-764', days: 3,  target: 10 },
-    { ecr: 'ECR-763', days: 4,  target: 10 },
-    { ecr: 'ECR-758', days: 14, target: 10 },
-    { ecr: 'ECR-750', days: 25, target: 10 },
-    { ecr: 'ECR-762', days: 17, target: 10 },
-    { ecr: 'ECR-765', days: 12, target: 10 },
-    { ecr: 'ECR-761', days: 24, target: 10 },
-    { ecr: 'ECR-760', days: 29, target: 10 },
-    { ecr: 'ECR-759', days: 29, target: 10 },
-  ];
+  const ecrTypes = {
+    minor: {
+      color: '#5b9cf6',
+      target: 10,
+      ecrs: [
+        { ecr: 'ECR-716', days: 135 },
+        { ecr: 'ECR-729', days: 77 },
+        { ecr: 'ECR-741', days: 63 },
+        { ecr: 'ECR-745', days: 13 },
+        { ecr: 'ECR-750', days: 24 },
+        { ecr: 'ECR-755', days: 3 },
+        { ecr: 'ECR-758', days: 13 },
+        { ecr: 'ECR-759', days: 28 },
+        { ecr: 'ECR-760', days: 28 },
+        { ecr: 'ECR-761', days: 23 },
+        { ecr: 'ECR-762', days: 16 },
+        { ecr: 'ECR-763', days: 2 },
+        { ecr: 'ECR-764', days: 2 },
+        { ecr: 'ECR-765', days: 11 },
+        { ecr: 'ECR-768', days: 15 },
+      ]
+    },
+    major: {
+      color: '#a78bfa',
+      target: 45,
+      ecrs: [
+        { ecr: 'ECR-690', days: 182 },
+        { ecr: 'ECR-721', days: 126 },
+        { ecr: 'ECR-726', days: 85 },
+        { ecr: 'ECR-730', days: 76 },
+        { ecr: 'ECR-739', days: 69 },
+      ]
+    },
+    dwg: {
+      color: '#fb7185',
+      target: 10,
+      ecrs: [
+        { ecr: 'ECR-701', days: 120 },
+        { ecr: 'ECR-752', days: 9 },
+        { ecr: 'ECR-756', days: 4 },
+      ]
+    }
+  };
+
+  let currentType = 'minor';
+  let chart = null;
 
   function renderCard(d) {
     const variance = +(d.actual - d.target).toFixed(2);
@@ -145,8 +189,8 @@
     const input = document.getElementById('input-' + id);
     const val = parseFloat(input.value);
     if (isNaN(val) || val < 0) return;
-    data.find(d => d.id === id).actual = val;
-    document.getElementById('cards').innerHTML = data.map(renderCard).join('');
+    summaryData.find(d => d.id === id).actual = val;
+    document.getElementById('cards').innerHTML = summaryData.map(renderCard).join('');
     updateTime();
   }
 
@@ -156,85 +200,100 @@
       'Last updated: ' + now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
-  document.getElementById('cards').innerHTML = data.map(renderCard).join('');
-  updateTime();
+  function showType(type) {
+    currentType = type;
+    document.querySelectorAll('.tab').forEach(t => {
+      t.className = 'tab';
+    });
+    event.target.className = 'tab active-' + type;
+    renderChart();
+  }
 
-  const labels = ecrData.map(d => d.ecr);
-  const days = ecrData.map(d => d.days);
-  const targetLine = ecrData.map(d => d.target);
-  const pointColors = ecrData.map(d => d.days > d.target ? '#e05252' : '#3ecf8e');
-  const pointBorderColors = ecrData.map(d => d.days > d.target ? 'rgba(224,82,82,0.25)' : 'rgba(62,207,142,0.25)');
+  function renderChart() {
+    const typeData = ecrTypes[currentType];
+    const labels = typeData.ecrs.map(d => d.ecr);
+    const days = typeData.ecrs.map(d => d.days);
+    const targetLine = typeData.ecrs.map(() => typeData.target);
+    const pointColors = typeData.ecrs.map(d => d.days > typeData.target ? '#e05252' : '#3ecf8e');
+    const pointBorderColors = typeData.ecrs.map(d => d.days > typeData.target ? 'rgba(224,82,82,0.25)' : 'rgba(62,207,142,0.25)');
 
-  new Chart(document.getElementById('ecrChart').getContext('2d'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'Days to close',
-          data: days,
-          borderColor: 'rgba(255,255,255,0.12)',
-          borderWidth: 1.5,
-          pointBackgroundColor: pointColors,
-          pointBorderColor: pointBorderColors,
-          pointBorderWidth: 5,
-          pointRadius: 7,
-          pointHoverRadius: 9,
-          tension: 0.3,
-          fill: false,
-        },
-        {
-          label: 'Target',
-          data: targetLine,
-          borderColor: 'rgba(255,255,255,0.3)',
-          borderWidth: 1.5,
-          borderDash: [6, 4],
-          pointRadius: 0,
-          fill: false,
-          tension: 0,
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#1a1d27',
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          titleColor: '#f0f2f8',
-          bodyColor: '#6b7080',
-          padding: 12,
-          callbacks: {
-            label: ctx => {
-              if (ctx.dataset.label === 'Target') return 'Target: ' + ctx.parsed.y + ' days';
-              const d = ecrData[ctx.dataIndex];
-              const diff = d.days - d.target;
-              const status = diff > 0 ? '+' + diff + ' days over' : Math.abs(diff) + ' days under';
-              return d.days + ' days — ' + status;
+    if (chart) { chart.destroy(); }
+
+    chart = new Chart(document.getElementById('ecrChart').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Days to close',
+            data: days,
+            borderColor: 'rgba(255,255,255,0.12)',
+            borderWidth: 1.5,
+            pointBackgroundColor: pointColors,
+            pointBorderColor: pointBorderColors,
+            pointBorderWidth: 5,
+            pointRadius: 7,
+            pointHoverRadius: 9,
+            tension: 0.3,
+            fill: false,
+          },
+          {
+            label: 'Target',
+            data: targetLine,
+            borderColor: typeData.color,
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            pointRadius: 0,
+            fill: false,
+            tension: 0,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1a1d27',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            titleColor: '#f0f2f8',
+            bodyColor: '#6b7080',
+            padding: 12,
+            callbacks: {
+              label: ctx => {
+                if (ctx.dataset.label === 'Target') return 'Target: ' + ctx.parsed.y + ' days';
+                const d = typeData.ecrs[ctx.dataIndex];
+                const diff = d.days - typeData.target;
+                const status = diff > 0 ? '+' + diff + ' days over' : Math.abs(diff) + ' days under';
+                return d.days + ' days — ' + status;
+              }
             }
           }
-        }
-      },
-      scales: {
-        x: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#6b7080', font: { family: 'DM Mono', size: 11 } },
-          border: { color: 'rgba(255,255,255,0.08)' }
         },
-        y: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#6b7080', font: { family: 'DM Mono', size: 11 } },
-          border: { color: 'rgba(255,255,255,0.08)' },
-          title: { display: true, text: 'Days to close', color: '#6b7080', font: { family: 'DM Sans', size: 11 } },
-          min: 0,
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#6b7080', font: { family: 'DM Mono', size: 11 } },
+            border: { color: 'rgba(255,255,255,0.08)' }
+          },
+          y: {
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#6b7080', font: { family: 'DM Mono', size: 11 } },
+            border: { color: 'rgba(255,255,255,0.08)' },
+            title: { display: true, text: 'Days to close', color: '#6b7080', font: { family: 'DM Sans', size: 11 } },
+            min: 0,
+          }
         }
       }
-    }
-  });
+    });
+  }
+
+  document.getElementById('cards').innerHTML = summaryData.map(renderCard).join('');
+  updateTime();
+  renderChart();
 </script>
 </body>
 </html>
