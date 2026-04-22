@@ -81,9 +81,9 @@
     <div class="chart-title">Days to close — individual ECRs</div>
     <div class="chart-subtitle">Green = below target &nbsp;·&nbsp; Red = above target &nbsp;·&nbsp; Dashed line = target</div>
     <div class="tabs">
-      <button class="tab active-minor" onclick="showType('minor')">Minor (target: 10 days)</button>
-      <button class="tab" onclick="showType('major')">Major (target: 45 days)</button>
-      <button class="tab" onclick="showType('dwg')">Additional DWG Info (target: 10 days)</button>
+      <button class="tab active-minor" onclick="showType('minor', this)">Minor (target: 10 days)</button>
+      <button class="tab" onclick="showType('major', this)">Major (target: 45 days)</button>
+      <button class="tab" onclick="showType('dwg', this)">Additional DWG Info (target: 10 days)</button>
     </div>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:#3ecf8e"></div>Below target</div>
@@ -110,41 +110,42 @@
       color: '#5b9cf6',
       target: 10,
       ecrs: [
-        { ecr: 'ECR-716', days: 135 },
-        { ecr: 'ECR-729', days: 77 },
-        { ecr: 'ECR-741', days: 63 },
-        { ecr: 'ECR-745', days: 13 },
-        { ecr: 'ECR-750', days: 24 },
-        { ecr: 'ECR-755', days: 3 },
-        { ecr: 'ECR-758', days: 13 },
-        { ecr: 'ECR-759', days: 28 },
-        { ecr: 'ECR-760', days: 28 },
-        { ecr: 'ECR-761', days: 23 },
-        { ecr: 'ECR-762', days: 16 },
-        { ecr: 'ECR-763', days: 2 },
-        { ecr: 'ECR-764', days: 2 },
-        { ecr: 'ECR-765', days: 11 },
-        { ecr: 'ECR-768', days: 15 },
+        { ecr: 'ECR-716', days: 135, date: '30 Mar' },
+        { ecr: 'ECR-745', days: 13,  date: '10 Mar' },
+        { ecr: 'ECR-755', days: 3,   date: '19 Mar' },
+        { ecr: 'ECR-758', days: 13,  date: '02 Apr' },
+        { ecr: 'ECR-763', days: 2,   date: '02 Apr' },
+        { ecr: 'ECR-764', days: 2,   date: '02 Apr' },
+        { ecr: 'ECR-750', days: 24,  date: '03 Apr' },
+        { ecr: 'ECR-739', days: 69,  date: '09 Apr' },
+        { ecr: 'ECR-729', days: 77,  date: '10 Apr' },
+        { ecr: 'ECR-741', days: 63,  date: '10 Apr' },
+        { ecr: 'ECR-762', days: 16,  date: '10 Apr' },
+        { ecr: 'ECR-765', days: 11,  date: '10 Apr' },
+        { ecr: 'ECR-761', days: 23,  date: '16 Apr' },
+        { ecr: 'ECR-759', days: 28,  date: '17 Apr' },
+        { ecr: 'ECR-760', days: 28,  date: '17 Apr' },
+        { ecr: 'ECR-768', days: 15,  date: '17 Apr' },
       ]
     },
     major: {
       color: '#a78bfa',
       target: 45,
       ecrs: [
-        { ecr: 'ECR-690', days: 182 },
-        { ecr: 'ECR-721', days: 126 },
-        { ecr: 'ECR-726', days: 85 },
-        { ecr: 'ECR-730', days: 76 },
-        { ecr: 'ECR-739', days: 69 },
+        { ecr: 'ECR-690', days: 182, date: '02 Apr' },
+        { ecr: 'ECR-739', days: 69,  date: '09 Apr' },
+        { ecr: 'ECR-721', days: 126, date: '10 Apr' },
+        { ecr: 'ECR-730', days: 76,  date: '10 Apr' },
+        { ecr: 'ECR-726', days: 85,  date: '17 Apr' },
       ]
     },
     dwg: {
       color: '#fb7185',
       target: 10,
       ecrs: [
-        { ecr: 'ECR-701', days: 120 },
-        { ecr: 'ECR-752', days: 9 },
-        { ecr: 'ECR-756', days: 4 },
+        { ecr: 'ECR-701', days: 120, date: '10 Mar' },
+        { ecr: 'ECR-752', days: 9,   date: '20 Mar' },
+        { ecr: 'ECR-756', days: 4,   date: '20 Mar' },
       ]
     }
   };
@@ -200,18 +201,16 @@
       'Last updated: ' + now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
-  function showType(type) {
+  function showType(type, btn) {
     currentType = type;
-    document.querySelectorAll('.tab').forEach(t => {
-      t.className = 'tab';
-    });
-    event.target.className = 'tab active-' + type;
+    document.querySelectorAll('.tab').forEach(t => t.className = 'tab');
+    btn.className = 'tab active-' + type;
     renderChart();
   }
 
   function renderChart() {
     const typeData = ecrTypes[currentType];
-    const labels = typeData.ecrs.map(d => d.ecr);
+    const labels = typeData.ecrs.map(d => d.date + '\n' + d.ecr);
     const days = typeData.ecrs.map(d => d.days);
     const targetLine = typeData.ecrs.map(() => typeData.target);
     const pointColors = typeData.ecrs.map(d => d.days > typeData.target ? '#e05252' : '#3ecf8e');
@@ -263,12 +262,13 @@
             bodyColor: '#6b7080',
             padding: 12,
             callbacks: {
+              title: ctx => typeData.ecrs[ctx[0].dataIndex].ecr + ' — ' + typeData.ecrs[ctx[0].dataIndex].date,
               label: ctx => {
                 if (ctx.dataset.label === 'Target') return 'Target: ' + ctx.parsed.y + ' days';
                 const d = typeData.ecrs[ctx.dataIndex];
                 const diff = d.days - typeData.target;
                 const status = diff > 0 ? '+' + diff + ' days over' : Math.abs(diff) + ' days under';
-                return d.days + ' days — ' + status;
+                return d.days + ' days to close — ' + status;
               }
             }
           }
@@ -276,7 +276,12 @@
         scales: {
           x: {
             grid: { color: 'rgba(255,255,255,0.05)' },
-            ticks: { color: '#6b7080', font: { family: 'DM Mono', size: 11 } },
+            ticks: {
+              color: '#6b7080',
+              font: { family: 'DM Mono', size: 10 },
+              maxRotation: 45,
+              minRotation: 45,
+            },
             border: { color: 'rgba(255,255,255,0.08)' }
           },
           y: {
