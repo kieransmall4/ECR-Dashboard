@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECR Performance Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0f2f8;
+      --muted: #6b7080;
+      --subtle: #3a3f52;
+      --red: #e05252;
+      --red-bg: rgba(224,82,82,0.12);
+      --green: #3ecf8e;
+      --green-bg: rgba(62,207,142,0.12);
+      --amber: #f5a623;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .header {
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .header h2 {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .updated {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .cards { display: flex; flex-direction: column; gap: 16px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent, var(--red));
+      opacity: 0.6;
+    }
+
+    .card.over { --accent: var(--red); }
+    .card.under { --accent: var(--green); }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 20px;
+      white-space: nowrap;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .status-badge.over {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid rgba(224,82,82,0.25);
+    }
+
+    .status-badge.under {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid rgba(62,207,142,0.25);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 1.25rem;
+    }
+
+    .metric {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .metric-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .metric-value {
+      font-size: 26px;
+      font-weight: 600;
+      font-family: 'DM Mono', monospace;
+      line-height: 1;
+    }
+
+    .metric-value.over { color: var(--red); }
+    .metric-value.under { color: var(--green); }
+    .metric-value.neutral { color: var(--text); }
+    .metric-value.variance-over { color: var(--red); }
+    .metric-value.variance-under { color: var(--green); }
+
+    .bar-section { }
+
+    .bar-labels-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      margin-bottom: 6px;
+    }
+
+    .bar-wrap {
+      position: relative;
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 3px;
+      overflow: visible;
+      margin-bottom: 6px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      position: relative;
+    }
+
+    .bar-fill.over { background: var(--red); opacity: 0.7; }
+    .bar-fill.under { background: var(--green); opacity: 0.7; }
+
+    .target-line {
+      position: absolute;
+      top: -4px;
+      width: 2px;
+      height: 14px;
+      background: var(--text);
+      border-radius: 1px;
+      opacity: 0.5;
+    }
+
+    .bar-labels-bottom {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--subtle);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .edit-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      align-items: center;
+    }
+
+    .edit-label {
+      font-size: 12px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .edit-input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      padding: 5px 10px;
+      width: 80px;
+      text-align: center;
+    }
+
+    .edit-input:focus {
+      outline: none;
+      border-color: var(--amber);
+    }
+
+    .edit-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      padding: 5px 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .edit-btn:hover { background: var(--subtle); }
+
+    .footer {
+      margin-top: 1.5rem;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Manufacturing Engineering</h1>
+  <h2>ECR Performance vs Target</h2>
+  <div class="updated" id="updated-time"></div>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<div class="footer">Update the actual values whenever your ClickUp averages change</div>
+
+<script>
+  const data = [
+    { id: 'minor', title: 'Minor ECR', target: 10, actual: 33.06 },
+    { id: 'major', title: 'Major ECR', target: 45, actual: 74 },
+    { id: 'dwg',   title: 'Additional DWG Info ECR', target: 10, actual: 28.13 },
+  ];
+
+  function renderCard(d) {
+    const variance = +(d.actual - d.target).toFixed(2);
+    const isOver = variance > 0;
+    const maxBar = Math.max(d.actual * 1.1, d.target * 1.5);
+    const fillPct = Math.min((d.actual / maxBar) * 100, 100);
+    const targetPct = Math.min((d.target / maxBar) * 100, 100);
+
+    return `
+      <div class="card ${isOver ? 'over' : 'under'}" id="card-${d.id}">
+        <div class="card-top">
+          <div>
+            <div class="card-title">${d.title}</div>
+            <div class="card-subtitle">Target: ${d.target} days</div>
+          </div>
+          <div class="status-badge ${isOver ? 'over' : 'under'}">
+            ${isOver ? '+' : ''}${variance} days ${isOver ? 'over' : 'under'}
+          </div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-label">Avg to close</div>
+            <div class="metric-value ${isOver ? 'over' : 'under'}">${d.actual}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Target</div>
+            <div class="metric-value neutral">${d.target}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Variance</div>
+            <div class="metric-value ${isOver ? 'variance-over' : 'variance-under'}">${isOver ? '+' : ''}${variance}</div>
+          </div>
+        </div>
+
+        <div class="bar-section">
+          <div class="bar-wrap">
+            <div class="bar-fill ${isOver ? 'over' : 'under'}" style="width:${fillPct}%"></div>
+            <div class="target-line" style="left:${targetPct}%"></div>
+          </div>
+          <div class="bar-labels-bottom">
+            <span>0</span>
+            <span>Target: ${d.target}</span>
+            <span>Actual: ${d.actual}</span>
+          </div>
+        </div>
+
+        <div class="edit-row">
+          <span class="edit-label">Update actual:</span>
+          <input class="edit-input" type="number" id="input-${d.id}" value="${d.actual}" step="0.01" min="0">
+          <button class="edit-btn" onclick="updateActual('${d.id}')">Update</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function updateActual(id) {
+    const input = document.getElementById(`input-${id}`);
+    const val = parseFloat(input.value);
+    if (isNaN(val) || val < 0) return;
+    const item = data.find(d => d.id === id);
+    item.actual = val;
+    document.getElementById('cards').innerHTML = data.map(renderCard).join('');
+    updateTime();
+  }
+
+  function updateTime() {
+    const now = new Date();
+    document.getElementById('updated-time').textContent =
+      'Last updated: ' + now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  document.getElementById('cards').innerHTML = data.map(renderCard).join('');
+  updateTime();
+</script>
+
+</body>
+</html>
