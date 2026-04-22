@@ -9,17 +9,24 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
-      --border: rgba(255,255,255,0.08); --text: #f0f2f8; --muted: #6b7080; --subtle: #3a3f52;
+      --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a; --surface3: #2a2f45;
+      --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
+      --text: #f0f2f8; --muted: #6b7080; --subtle: #3a3f52;
       --red: #e05252; --red-bg: rgba(224,82,82,0.12);
       --green: #3ecf8e; --green-bg: rgba(62,207,142,0.12);
-      --amber: #f5a623; --blue: #5b9cf6; --purple: #a78bfa; --coral: #fb7185;
+      --amber: #f5a623; --amber-bg: rgba(245,166,35,0.12);
+      --blue: #5b9cf6; --purple: #a78bfa; --coral: #fb7185;
     }
     body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; padding: 2rem; }
-    .header { margin-bottom: 2rem; }
-    .header h1 { font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 4px; }
-    .header h2 { font-size: 22px; font-weight: 600; color: var(--text); }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 12px; }
+    .header-left h1 { font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 4px; }
+    .header-left h2 { font-size: 22px; font-weight: 600; color: var(--text); }
     .updated { font-size: 12px; color: var(--muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+    .edit-toggle { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; cursor: pointer; font-size: 13px; color: var(--muted); transition: all 0.2s; }
+    .edit-toggle:hover { border-color: var(--border2); color: var(--text); }
+    .edit-toggle.active { background: var(--amber-bg); border-color: rgba(245,166,35,0.4); color: var(--amber); }
+    .edit-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); transition: background 0.2s; }
+    .edit-toggle.active .edit-dot { background: var(--amber); }
     .section-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 12px; }
     .cards { display: flex; flex-direction: column; gap: 16px; margin-bottom: 2rem; }
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; position: relative; overflow: hidden; }
@@ -41,36 +48,64 @@
     .bar-fill.over { background: var(--red); opacity: 0.7; } .bar-fill.under { background: var(--green); opacity: 0.7; }
     .target-line { position: absolute; top: -4px; width: 2px; height: 14px; background: var(--text); border-radius: 1px; opacity: 0.5; }
     .bar-labels-bottom { display: flex; justify-content: space-between; font-size: 10px; color: var(--subtle); font-family: 'DM Mono', monospace; }
-    .edit-row { display: flex; gap: 8px; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); align-items: center; flex-wrap: wrap; }
-    .edit-label { font-size: 12px; color: var(--muted); flex-shrink: 0; }
-    .edit-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; padding: 5px 10px; width: 80px; text-align: center; }
-    .edit-input:focus { outline: none; border-color: var(--amber); }
-    .edit-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 5px 14px; cursor: pointer; }
-    .edit-btn:hover { background: var(--subtle); }
+    .avg-edit { display: none; gap: 8px; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); align-items: center; flex-wrap: wrap; }
+    .avg-edit.visible { display: flex; }
+    .avg-edit label { font-size: 12px; color: var(--muted); flex-shrink: 0; }
     .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; }
     .chart-header { margin-bottom: 1.25rem; }
     .chart-title { font-size: 15px; font-weight: 600; color: var(--text); }
     .chart-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; margin-bottom: 1rem; }
-    .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
     .tab { font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
-    .tab:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
     .tab.active-minor { background: rgba(91,156,246,0.15); border-color: rgba(91,156,246,0.4); color: #5b9cf6; }
     .tab.active-major { background: rgba(167,139,250,0.15); border-color: rgba(167,139,250,0.4); color: #a78bfa; }
     .tab.active-dwg { background: rgba(251,113,133,0.15); border-color: rgba(251,113,133,0.4); color: #fb7185; }
-    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
     .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
     .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .legend-dash { width: 16px; height: 0; border-top: 2px dashed rgba(255,255,255,0.3); flex-shrink: 0; }
     .chart-wrap { position: relative; height: 320px; }
+    .add-ecr-panel { display: none; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .add-ecr-panel.visible { display: block; }
+    .add-ecr-title { font-size: 13px; font-weight: 500; color: var(--amber); margin-bottom: 12px; }
+    .add-ecr-fields { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    .field-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    input[type="text"], input[type="number"], select {
+      background: var(--surface3); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px;
+      padding: 7px 10px; width: 100%;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--amber); }
+    select option { background: var(--surface2); }
+    .btn { border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 7px 16px; cursor: pointer; border: 1px solid var(--border); transition: all 0.15s; }
+    .btn-add { background: var(--amber-bg); border-color: rgba(245,166,35,0.4); color: var(--amber); }
+    .btn-add:hover { background: rgba(245,166,35,0.2); }
+    .btn-neutral { background: var(--surface2); color: var(--muted); }
+    .btn-neutral:hover { background: var(--surface3); color: var(--text); }
+    .ecr-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; display: none; }
+    .ecr-table.visible { display: table; }
+    .ecr-table th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .ecr-table td { padding: 7px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); font-family: 'DM Mono', monospace; color: var(--text); }
+    .ecr-table tr:last-child td { border-bottom: none; }
+    .del-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 14px; padding: 0 4px; opacity: 0.6; }
+    .del-btn:hover { opacity: 1; }
+    .over-tag { color: var(--red); } .under-tag { color: var(--green); }
     .footer { margin-top: 1rem; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; text-align: center; }
   </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>Manufacturing Engineering</h1>
-  <h2>ECR Performance Dashboard</h2>
-  <div class="updated" id="updated-time"></div>
+  <div class="header-left">
+    <h1>Manufacturing Engineering</h1>
+    <h2>ECR Performance Dashboard</h2>
+    <div class="updated" id="updated-time"></div>
+  </div>
+  <button class="edit-toggle" id="editToggle" onclick="toggleEditMode()">
+    <div class="edit-dot"></div>
+    Edit mode
+  </button>
 </div>
 
 <div class="section-title">Target vs actual — average days to close</div>
@@ -81,24 +116,68 @@
     <div class="chart-title">Days to close — individual ECRs</div>
     <div class="chart-subtitle">Green = below target &nbsp;·&nbsp; Red = above target &nbsp;·&nbsp; Dashed line = target</div>
     <div class="tabs">
-      <button class="tab active-minor" onclick="showType('minor', this)">Minor (target: 10 days)</button>
-      <button class="tab" onclick="showType('major', this)">Major (target: 45 days)</button>
-      <button class="tab" onclick="showType('dwg', this)">Additional DWG Info (target: 10 days)</button>
+      <button class="tab active-minor" id="tab-minor" onclick="showType('minor', this)">Minor (target: 10 days)</button>
+      <button class="tab" id="tab-major" onclick="showType('major', this)">Major (target: 45 days)</button>
+      <button class="tab" id="tab-dwg" onclick="showType('dwg', this)">Additional DWG Info (target: 10 days)</button>
     </div>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:#3ecf8e"></div>Below target</div>
       <div class="legend-item"><div class="legend-dot" style="background:#e05252"></div>Above target</div>
       <div class="legend-item"><div class="legend-dash"></div>Target line</div>
     </div>
+
+    <div class="add-ecr-panel" id="addPanel">
+      <div class="add-ecr-title">Add new ECR</div>
+      <div class="add-ecr-fields">
+        <div class="field-group">
+          <span class="field-label">ECR number</span>
+          <input type="text" id="new-ecr" placeholder="ECR-000">
+        </div>
+        <div class="field-group">
+          <span class="field-label">Days to close</span>
+          <input type="number" id="new-days" placeholder="0" min="0">
+        </div>
+        <div class="field-group">
+          <span class="field-label">Date closed</span>
+          <input type="text" id="new-date" placeholder="01 May">
+        </div>
+        <div class="field-group">
+          <span class="field-label">Type</span>
+          <select id="new-type">
+            <option value="minor">Minor</option>
+            <option value="major">Major</option>
+            <option value="dwg">Additional DWG Info</option>
+          </select>
+        </div>
+        <button class="btn btn-add" onclick="addECR()">Add</button>
+      </div>
+    </div>
+
+    <table class="ecr-table" id="ecrTable">
+      <thead>
+        <tr>
+          <th>ECR</th>
+          <th>Date closed</th>
+          <th>Days</th>
+          <th>vs target</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="ecrTableBody"></tbody>
+    </table>
   </div>
   <div class="chart-wrap">
     <canvas id="ecrChart"></canvas>
   </div>
 </div>
 
-<div class="footer">Update actual values whenever your ClickUp averages change</div>
+<div class="footer">Click "Edit mode" to add new ECRs or update averages</div>
 
 <script>
+  let editMode = false;
+  let currentType = 'minor';
+  let chart = null;
+
   const summaryData = [
     { id: 'minor', title: 'Minor ECR', target: 10, actual: 33.06 },
     { id: 'major', title: 'Major ECR', target: 45, actual: 74 },
@@ -106,52 +185,48 @@
   ];
 
   const ecrTypes = {
-    minor: {
-      color: '#5b9cf6',
-      target: 10,
-      ecrs: [
-        { ecr: 'ECR-716', days: 135, date: '30 Mar' },
-        { ecr: 'ECR-745', days: 13,  date: '10 Mar' },
-        { ecr: 'ECR-755', days: 3,   date: '19 Mar' },
-        { ecr: 'ECR-758', days: 13,  date: '02 Apr' },
-        { ecr: 'ECR-763', days: 2,   date: '02 Apr' },
-        { ecr: 'ECR-764', days: 2,   date: '02 Apr' },
-        { ecr: 'ECR-750', days: 24,  date: '03 Apr' },
-        { ecr: 'ECR-739', days: 69,  date: '09 Apr' },
-        { ecr: 'ECR-729', days: 77,  date: '10 Apr' },
-        { ecr: 'ECR-741', days: 63,  date: '10 Apr' },
-        { ecr: 'ECR-762', days: 16,  date: '10 Apr' },
-        { ecr: 'ECR-765', days: 11,  date: '10 Apr' },
-        { ecr: 'ECR-761', days: 23,  date: '16 Apr' },
-        { ecr: 'ECR-759', days: 28,  date: '17 Apr' },
-        { ecr: 'ECR-760', days: 28,  date: '17 Apr' },
-        { ecr: 'ECR-768', days: 15,  date: '17 Apr' },
-      ]
-    },
-    major: {
-      color: '#a78bfa',
-      target: 45,
-      ecrs: [
-        { ecr: 'ECR-690', days: 182, date: '02 Apr' },
-        { ecr: 'ECR-739', days: 69,  date: '09 Apr' },
-        { ecr: 'ECR-721', days: 126, date: '10 Apr' },
-        { ecr: 'ECR-730', days: 76,  date: '10 Apr' },
-        { ecr: 'ECR-726', days: 85,  date: '17 Apr' },
-      ]
-    },
-    dwg: {
-      color: '#fb7185',
-      target: 10,
-      ecrs: [
-        { ecr: 'ECR-701', days: 120, date: '10 Mar' },
-        { ecr: 'ECR-752', days: 9,   date: '20 Mar' },
-        { ecr: 'ECR-756', days: 4,   date: '20 Mar' },
-      ]
-    }
+    minor: { color: '#5b9cf6', target: 10, ecrs: [
+      { ecr: 'ECR-716', days: 135, date: '30 Mar' },
+      { ecr: 'ECR-745', days: 13,  date: '10 Mar' },
+      { ecr: 'ECR-755', days: 3,   date: '19 Mar' },
+      { ecr: 'ECR-758', days: 13,  date: '02 Apr' },
+      { ecr: 'ECR-763', days: 2,   date: '02 Apr' },
+      { ecr: 'ECR-764', days: 2,   date: '02 Apr' },
+      { ecr: 'ECR-750', days: 24,  date: '03 Apr' },
+      { ecr: 'ECR-729', days: 77,  date: '10 Apr' },
+      { ecr: 'ECR-741', days: 63,  date: '10 Apr' },
+      { ecr: 'ECR-762', days: 16,  date: '10 Apr' },
+      { ecr: 'ECR-765', days: 11,  date: '10 Apr' },
+      { ecr: 'ECR-761', days: 23,  date: '16 Apr' },
+      { ecr: 'ECR-759', days: 28,  date: '17 Apr' },
+      { ecr: 'ECR-760', days: 28,  date: '17 Apr' },
+      { ecr: 'ECR-768', days: 15,  date: '17 Apr' },
+    ]},
+    major: { color: '#a78bfa', target: 45, ecrs: [
+      { ecr: 'ECR-690', days: 182, date: '02 Apr' },
+      { ecr: 'ECR-739', days: 69,  date: '09 Apr' },
+      { ecr: 'ECR-721', days: 126, date: '10 Apr' },
+      { ecr: 'ECR-730', days: 76,  date: '10 Apr' },
+      { ecr: 'ECR-726', days: 85,  date: '17 Apr' },
+    ]},
+    dwg: { color: '#fb7185', target: 10, ecrs: [
+      { ecr: 'ECR-701', days: 120, date: '10 Mar' },
+      { ecr: 'ECR-752', days: 9,   date: '20 Mar' },
+      { ecr: 'ECR-756', days: 4,   date: '20 Mar' },
+    ]}
   };
 
-  let currentType = 'minor';
-  let chart = null;
+  function toggleEditMode() {
+    editMode = !editMode;
+    const btn = document.getElementById('editToggle');
+    btn.classList.toggle('active', editMode);
+    btn.querySelector('.edit-dot').style.background = editMode ? 'var(--amber)' : 'var(--muted)';
+    btn.childNodes[1].textContent = editMode ? ' Editing' : ' Edit mode';
+    document.querySelectorAll('.avg-edit').forEach(el => el.classList.toggle('visible', editMode));
+    document.getElementById('addPanel').classList.toggle('visible', editMode);
+    document.getElementById('ecrTable').classList.toggle('visible', editMode);
+    if (editMode) renderTable();
+  }
 
   function renderCard(d) {
     const variance = +(d.actual - d.target).toFixed(2);
@@ -178,27 +253,61 @@
           <div class="target-line" style="left:${targetPct}%"></div>
         </div>
         <div class="bar-labels-bottom"><span>0</span><span>Target: ${d.target}</span><span>Actual: ${d.actual}</span></div>
-        <div class="edit-row">
-          <span class="edit-label">Update actual:</span>
-          <input class="edit-input" type="number" id="input-${d.id}" value="${d.actual}" step="0.01" min="0">
-          <button class="edit-btn" onclick="updateActual('${d.id}')">Update</button>
+        <div class="avg-edit ${editMode ? 'visible' : ''}">
+          <label>Update average:</label>
+          <input type="number" style="width:80px" id="input-${d.id}" value="${d.actual}" step="0.01" min="0">
+          <button class="btn btn-add" onclick="updateActual('${d.id}')">Update</button>
         </div>
       </div>`;
   }
 
   function updateActual(id) {
-    const input = document.getElementById('input-' + id);
-    const val = parseFloat(input.value);
+    const val = parseFloat(document.getElementById('input-' + id).value);
     if (isNaN(val) || val < 0) return;
     summaryData.find(d => d.id === id).actual = val;
     document.getElementById('cards').innerHTML = summaryData.map(renderCard).join('');
     updateTime();
   }
 
-  function updateTime() {
-    const now = new Date();
-    document.getElementById('updated-time').textContent =
-      'Last updated: ' + now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  function addECR() {
+    const ecr = document.getElementById('new-ecr').value.trim();
+    const days = parseInt(document.getElementById('new-days').value);
+    const date = document.getElementById('new-date').value.trim();
+    const type = document.getElementById('new-type').value;
+    if (!ecr || isNaN(days) || !date) { alert('Please fill in all fields'); return; }
+    ecrTypes[type].ecrs.push({ ecr, days, date });
+    document.getElementById('new-ecr').value = '';
+    document.getElementById('new-days').value = '';
+    document.getElementById('new-date').value = '';
+    document.getElementById('new-type').value = 'minor';
+    if (currentType === type) renderChart();
+    renderTable();
+    updateTime();
+  }
+
+  function deleteECR(type, index) {
+    ecrTypes[type].ecrs.splice(index, 1);
+    if (currentType === type) renderChart();
+    renderTable();
+    updateTime();
+  }
+
+  function renderTable() {
+    const typeData = ecrTypes[currentType];
+    const tbody = document.getElementById('ecrTableBody');
+    tbody.innerHTML = typeData.ecrs.map((d, i) => {
+      const diff = d.days - typeData.target;
+      const tag = diff > 0
+        ? `<span class="over-tag">+${diff} over</span>`
+        : `<span class="under-tag">${Math.abs(diff)} under</span>`;
+      return `<tr>
+        <td>${d.ecr}</td>
+        <td>${d.date}</td>
+        <td>${d.days}</td>
+        <td>${tag}</td>
+        <td><button class="del-btn" onclick="deleteECR('${currentType}', ${i})">✕</button></td>
+      </tr>`;
+    }).join('');
   }
 
   function showType(type, btn) {
@@ -206,6 +315,7 @@
     document.querySelectorAll('.tab').forEach(t => t.className = 'tab');
     btn.className = 'tab active-' + type;
     renderChart();
+    if (editMode) renderTable();
   }
 
   function renderChart() {
@@ -215,85 +325,47 @@
     const targetLine = typeData.ecrs.map(() => typeData.target);
     const pointColors = typeData.ecrs.map(d => d.days > typeData.target ? '#e05252' : '#3ecf8e');
     const pointBorderColors = typeData.ecrs.map(d => d.days > typeData.target ? 'rgba(224,82,82,0.25)' : 'rgba(62,207,142,0.25)');
-
-    if (chart) { chart.destroy(); }
-
+    if (chart) chart.destroy();
     chart = new Chart(document.getElementById('ecrChart').getContext('2d'), {
       type: 'line',
       data: {
         labels,
         datasets: [
-          {
-            label: 'Days to close',
-            data: days,
-            borderColor: 'rgba(255,255,255,0.12)',
-            borderWidth: 1.5,
-            pointBackgroundColor: pointColors,
-            pointBorderColor: pointBorderColors,
-            pointBorderWidth: 5,
-            pointRadius: 7,
-            pointHoverRadius: 9,
-            tension: 0.3,
-            fill: false,
-          },
-          {
-            label: 'Target',
-            data: targetLine,
-            borderColor: typeData.color,
-            borderWidth: 1.5,
-            borderDash: [6, 4],
-            pointRadius: 0,
-            fill: false,
-            tension: 0,
-          }
+          { label: 'Days to close', data: days, borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1.5, pointBackgroundColor: pointColors, pointBorderColor: pointBorderColors, pointBorderWidth: 5, pointRadius: 7, pointHoverRadius: 9, tension: 0.3, fill: false },
+          { label: 'Target', data: targetLine, borderColor: typeData.color, borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: false, tension: 0 }
         ]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#1a1d27',
-            borderColor: 'rgba(255,255,255,0.1)',
-            borderWidth: 1,
-            titleColor: '#f0f2f8',
-            bodyColor: '#6b7080',
-            padding: 12,
+            backgroundColor: '#1a1d27', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+            titleColor: '#f0f2f8', bodyColor: '#6b7080', padding: 12,
             callbacks: {
               title: ctx => typeData.ecrs[ctx[0].dataIndex].ecr + ' — ' + typeData.ecrs[ctx[0].dataIndex].date,
               label: ctx => {
                 if (ctx.dataset.label === 'Target') return 'Target: ' + ctx.parsed.y + ' days';
                 const d = typeData.ecrs[ctx.dataIndex];
                 const diff = d.days - typeData.target;
-                const status = diff > 0 ? '+' + diff + ' days over' : Math.abs(diff) + ' days under';
-                return d.days + ' days to close — ' + status;
+                return d.days + ' days — ' + (diff > 0 ? '+' + diff + ' over' : Math.abs(diff) + ' under');
               }
             }
           }
         },
         scales: {
-          x: {
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            ticks: {
-              color: '#6b7080',
-              font: { family: 'DM Mono', size: 10 },
-              maxRotation: 45,
-              minRotation: 45,
-            },
-            border: { color: 'rgba(255,255,255,0.08)' }
-          },
-          y: {
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            ticks: { color: '#6b7080', font: { family: 'DM Mono', size: 11 } },
-            border: { color: 'rgba(255,255,255,0.08)' },
-            title: { display: true, text: 'Days to close', color: '#6b7080', font: { family: 'DM Sans', size: 11 } },
-            min: 0,
-          }
+          x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7080', font: { family: 'DM Mono', size: 10 }, maxRotation: 45, minRotation: 45 }, border: { color: 'rgba(255,255,255,0.08)' } },
+          y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7080', font: { family: 'DM Mono', size: 11 } }, border: { color: 'rgba(255,255,255,0.08)' }, title: { display: true, text: 'Days to close', color: '#6b7080', font: { family: 'DM Sans', size: 11 } }, min: 0 }
         }
       }
     });
+  }
+
+  function updateTime() {
+    const now = new Date();
+    document.getElementById('updated-time').textContent =
+      'Last updated: ' + now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
   document.getElementById('cards').innerHTML = summaryData.map(renderCard).join('');
